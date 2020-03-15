@@ -23,10 +23,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "HLW8012_ESP82.h"
-#include "mem.h"
-#include "gpio.h"
-#include "gpios_id.h"
-
+#include <espressif/esp_common.h>
+#include <FreeRTOS.h>
+#include <c_types.h>
 #include <math.h>
 
 uint8_t _cf_pin;
@@ -60,15 +59,19 @@ volatile uint32_t _last_cf1_interrupt = 0;
 volatile uint32_t _first_cf1_interrupt = 0;
 
 
-LOCAL void HLW8012_intr_handler(void *arg);
+void HLW8012_intr_handler(void *arg);
 
 
-void ICACHE_FLASH_ATTR HLW8012_checkCFSignal() {
-    if ((system_get_time() - _last_cf_interrupt) > _pulse_timeout) 
+void IRAM HLW8012_checkCFSignal() {
+/*IRAM*/
+    if ((system_get_time() - _last_cf_interrupt) > _pulse_timeout)
         _power_pulse_width = 0;
 }
 
-void ICACHE_FLASH_ATTR HLW8012_checkCF1Signal() {
+
+void IRAM HLW8012_checkCF1Signal() {
+    /*IRAM*/
+
     if ((system_get_time() - _last_cf1_interrupt) > _pulse_timeout) {
         if (_mode == _current_mode) {
             _current_pulse_width = 0;
@@ -84,7 +87,9 @@ void ICACHE_FLASH_ATTR HLW8012_checkCF1Signal() {
 // For power a frequency of 1Hz means around 12W
 // For current a frequency of 1Hz means around 15mA
 // For voltage a frequency of 1Hz means around 0.5V
-LOCAL void ICACHE_FLASH_ATTR _calculateDefaultMultipliers() {
+void IRAM _calculateDefaultMultipliers() {
+    /*IRAM*/
+
     switch (_model){
     case 1:
         _power_multiplier =   (  50850000.0 * _vref * _vref * _voltage_resistor / _current_resistor / 48.0 / F_OSC_BL0) / 1.1371681416f;  //15102450
@@ -99,15 +104,15 @@ LOCAL void ICACHE_FLASH_ATTR _calculateDefaultMultipliers() {
     }
 }
 
-float ICACHE_FLASH_ATTR HLW8012_getCurrentMultiplier() { return _current_multiplier; };
-float ICACHE_FLASH_ATTR HLW8012_getVoltageMultiplier() { return _voltage_multiplier; };
-float ICACHE_FLASH_ATTR HLW8012_getPowerMultiplier() { return _power_multiplier; };
+float IRAM HLW8012_getCurrentMultiplier() { return _current_multiplier; };
+float IRAM HLW8012_getVoltageMultiplier() { return _voltage_multiplier; };
+float IRAM HLW8012_getPowerMultiplier() { return _power_multiplier; };
 
-void ICACHE_FLASH_ATTR HLW8012_setCurrentMultiplier(float current_multiplier) { _current_multiplier = current_multiplier; };
-void ICACHE_FLASH_ATTR HLW8012_setVoltageMultiplier(float voltage_multiplier) { _voltage_multiplier = voltage_multiplier; };
-void ICACHE_FLASH_ATTR HLW8012_setPowerMultiplier(float power_multiplier) { _power_multiplier = power_multiplier; };
+void IRAM HLW8012_setCurrentMultiplier(float current_multiplier) { _current_multiplier = current_multiplier; };
+void IRAM HLW8012_setVoltageMultiplier(float voltage_multiplier) { _voltage_multiplier = voltage_multiplier; };
+void IRAM HLW8012_setPowerMultiplier(float power_multiplier) { _power_multiplier = power_multiplier; };
 
-void ICACHE_FLASH_ATTR HLW8012_init(uint8_t cf_pin, uint8_t cf1_pin, uint8_t sel_pin, uint8_t currentWhen, uint8_t model){
+void IRAM HLW8012_init(uint8_t cf_pin, uint8_t cf1_pin, uint8_t sel_pin, uint8_t currentWhen, uint8_t model){
     _model = model;
 
     switch (_model) {
@@ -166,7 +171,7 @@ void ICACHE_FLASH_ATTR HLW8012_init(uint8_t cf_pin, uint8_t cf1_pin, uint8_t sel
     ETS_GPIO_INTR_ENABLE();
 }
 
-void ICACHE_FLASH_ATTR HLW8012_setMode(hlw8012_mode_t mode) {
+void IRAM HLW8012_setMode(hlw8012_mode_t mode) {
     _mode = (mode == MODE_CURRENT) ? _current_mode : 1 - _current_mode;
     GPIO_OUTPUT_SET((_sel_pin), _mode);
     
@@ -174,17 +179,17 @@ void ICACHE_FLASH_ATTR HLW8012_setMode(hlw8012_mode_t mode) {
    
 }
 
-hlw8012_mode_t ICACHE_FLASH_ATTR HLW8012_getMode() {
+hlw8012_mode_t IRAM HLW8012_getMode() {
     return (_mode == _current_mode) ? MODE_CURRENT : MODE_VOLTAGE;
 }
 
-hlw8012_mode_t ICACHE_FLASH_ATTR HLW8012_toggleMode() {
+hlw8012_mode_t IRAM HLW8012_toggleMode() {
     hlw8012_mode_t new_mode = HLW8012_getMode() == MODE_CURRENT ? MODE_VOLTAGE : MODE_CURRENT;
     HLW8012_setMode(new_mode);
     return new_mode;
 }
 
-uint16_t ICACHE_FLASH_ATTR HLW8012_getCurrent() {
+uint16_t IRAM HLW8012_getCurrent() {
 
     // Power measurements are more sensitive to switch offs,
     // so we first check if power is 0 to set _current to 0 too
@@ -202,14 +207,14 @@ uint16_t ICACHE_FLASH_ATTR HLW8012_getCurrent() {
 
 }
 
-uint16_t ICACHE_FLASH_ATTR HLW8012_getVoltage() {
+uint16_t IRAM HLW8012_getVoltage() {
     HLW8012_checkCF1Signal();
     
     _voltage = (_voltage_pulse_width > 0) ? _voltage_multiplier / _voltage_pulse_width : 0;
     return _voltage;
 }
 
-uint32_t ICACHE_FLASH_ATTR HLW8012_getEnergy() {
+uint32_t IRAM HLW8012_getEnergy() {
 
     /*
     Pulse count is directly proportional to energy:
@@ -220,7 +225,7 @@ uint32_t ICACHE_FLASH_ATTR HLW8012_getEnergy() {
     return _pulse_count * _power_multiplier / 1000000l;
 }
 
-uint16_t ICACHE_FLASH_ATTR HLW8012_getActivePower() {
+uint16_t IRAM HLW8012_getActivePower() {
 
     HLW8012_checkCFSignal();
 
@@ -228,14 +233,14 @@ uint16_t ICACHE_FLASH_ATTR HLW8012_getActivePower() {
     return _power;
 }
 
-uint16_t ICACHE_FLASH_ATTR HLW8012_getApparentPower() {
+uint16_t IRAM HLW8012_getApparentPower() {
     float current = HLW8012_getCurrent();
     uint16_t voltage = HLW8012_getVoltage();
     return voltage * current;
 }
 
 
-float ICACHE_FLASH_ATTR HLW8012_getPowerFactor() {
+float IRAM HLW8012_getPowerFactor() {
     uint16_t active = HLW8012_getActivePower();
     uint16_t apparent = HLW8012_getApparentPower();
     if (active > apparent) return 1;
@@ -243,30 +248,30 @@ float ICACHE_FLASH_ATTR HLW8012_getPowerFactor() {
     return (float) active / apparent;
 }
 
-void ICACHE_FLASH_ATTR HLW8012_resetEnergy() {
+void IRAM HLW8012_resetEnergy() {
     _pulse_count = 0;
 }
 
-void ICACHE_FLASH_ATTR HLW8012_expectedCurrent(float value) {
+void IRAM HLW8012_expectedCurrent(float value) {
     if (_current == 0) HLW8012_getCurrent();
     if (_current > 0) _current_multiplier *= (value / _current);
 }
 
-void ICACHE_FLASH_ATTR HLW8012_expectedVoltage(uint16_t value) {
+void IRAM HLW8012_expectedVoltage(uint16_t value) {
     if (_voltage == 0) HLW8012_getVoltage();
     if (_voltage > 0) _voltage_multiplier *= ((float) value / _voltage);
 }
 
-void ICACHE_FLASH_ATTR HLW8012_expectedActivePower(uint16_t value) {
+void IRAM HLW8012_expectedActivePower(uint16_t value) {
     if (_power == 0) HLW8012_getActivePower();
     if (_power > 0) _power_multiplier *= ((float) value / _power);
 }
 
-void ICACHE_FLASH_ATTR HLW8012_resetMultipliers() {
+void IRAM HLW8012_resetMultipliers() {
     _calculateDefaultMultipliers();
 }
 
-void ICACHE_FLASH_ATTR HLW8012_setResistors(float current, float voltage_upstream, float voltage_downstream) {
+void IRAM HLW8012_setResistors(float current, float voltage_upstream, float voltage_downstream) {
     if (voltage_downstream > 0) {
         _current_resistor = current;
         _voltage_resistor = (voltage_upstream + voltage_downstream) / voltage_downstream;
@@ -274,14 +279,14 @@ void ICACHE_FLASH_ATTR HLW8012_setResistors(float current, float voltage_upstrea
     }
 }
 
-LOCAL void  HLW8012_cf_interrupt(void) {
+void  HLW8012_cf_interrupt(void) {
     uint32_t now = system_get_time();
     _power_pulse_width = now - _last_cf_interrupt;
     _last_cf_interrupt = now;
     _pulse_count++;
 }
 
-LOCAL void  HLW8012_cf1_interrupt(void) {
+void  HLW8012_cf1_interrupt(void) {
 
     uint32_t now = system_get_time();
 
@@ -310,7 +315,7 @@ LOCAL void  HLW8012_cf1_interrupt(void) {
     _last_cf1_interrupt = now;
 }
 
-LOCAL void HLW8012_intr_handler(void *arg){
+void HLW8012_intr_handler(void *arg){
     uint32 gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
 
     if (gpio_status & BIT(_cf_pin)) {

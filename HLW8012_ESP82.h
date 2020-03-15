@@ -25,13 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef HLW8012_h
 #define HLW8012_h
 
-#include "os_type.h"
-#include "C_types.h"
-#include "osapi.h"
-#include "gpio.h"
-#include "Osapi.h"
-#include "c_types.h"
-#include "ets_sys.h"
+#include <espressif/esp_common.h>
 
 // Internal voltage reference value
 #define V_REF_HLW               2.43
