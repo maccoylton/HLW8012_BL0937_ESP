@@ -3,10 +3,11 @@
 HLW8012_ESP82
 also works with BL0937 (requires calibration)
 
-Copyright (C) 2019 by Jaromir Kopp <macwyznawca at me dot com>
-
+Copyright (C) 2020 by David B brown
+ 
 Based on the library for Arduino created by: Xose Pérez <xose dot perez at gmail dot com>
-
+Based on the library for espp SDK by Jaromir Kopp <macwyznawca at me dot com>
+ 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -64,11 +65,13 @@ volatile uint32_t _first_cf1_interrupt = 0;
 
 
 void HLW8012_intr_handler(void *arg);
+void  HLW8012_cf_interrupt(void);
+void  HLW8012_cf1_interrupt(void);
 
 
 void IRAM HLW8012_checkCFSignal() {
 /*IRAM*/
-    const uint32_t now = xTaskGetTickCountFromISR();
+    const uint32_t now = sdk_system_get_time();
     if ((now - _last_cf_interrupt) > _pulse_timeout)
         _power_pulse_width = 0;
 }
@@ -76,7 +79,7 @@ void IRAM HLW8012_checkCFSignal() {
 
 void IRAM HLW8012_checkCF1Signal() {
     /*IRAM*/
-    const uint32_t now = xTaskGetTickCountFromISR();
+    const uint32_t now = sdk_system_get_time();
     if ((now - _last_cf1_interrupt) > _pulse_timeout) {
         if (_mode == _current_mode) {
             _current_pulse_width = 0;
@@ -137,7 +140,7 @@ void IRAM HLW8012_init(uint8_t cf_pin, uint8_t cf1_pin, uint8_t sel_pin, uint8_t
     _sel_pin = sel_pin;
     _current_mode = currentWhen;
 
-    ETS_GPIO_INTR_ATTACH(HLW8012_intr_handler, NULL);
+/*    ETS_GPIO_INTR_ATTACH(HLW8012_intr_handler, NULL);
 
     ETS_GPIO_INTR_DISABLE();
 
@@ -165,22 +168,32 @@ void IRAM HLW8012_init(uint8_t cf_pin, uint8_t cf1_pin, uint8_t sel_pin, uint8_t
     GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, BIT(_cf_pin));
     GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, BIT(_cf1_pin));
     
-    gpio_pin_intr_state_set(GPIO_ID_PIN(_cf_pin),GPIO_PIN_INTR_NEGEDGE);
-    gpio_pin_intr_state_set(GPIO_ID_PIN(_cf1_pin),GPIO_PIN_INTR_NEGEDGE);
+    gpio_pin_intr_state_set(GPIO_ID_PIN(_cf_pin),GPIO_INTTYPE_EDGE_NEG);
+    gpio_pin_intr_state_set(GPIO_ID_PIN(_cf1_pin),GPIO_INTTYPE_EDGE_NEG);
+*/
     
+    
+    
+    gpio_enable(_cf_pin, GPIO_INPUT);
+    gpio_enable(_cf1_pin, GPIO_INPUT);
+    gpio_set_interrupt(_cf_pin, GPIO_INTTYPE_EDGE_NEG, HLW8012_cf_interrupt);
+    gpio_set_interrupt(_cf1_pin, GPIO_INTTYPE_EDGE_NEG, HLW8012_cf1_interrupt);
+    gpio_enable(_sel_pin, GPIO_OUTPUT);
+
+
     _calculateDefaultMultipliers();
 
     _mode = _current_mode;
-    GPIO_OUTPUT_SET(_sel_pin, _mode);
+    gpio_write(_sel_pin, _mode);
 
-    ETS_GPIO_INTR_ENABLE();
+/*    ETS_GPIO_INTR_ENABLE();*/
 }
 
 void IRAM HLW8012_setMode(hlw8012_mode_t mode) {
     _mode = (mode == MODE_CURRENT) ? _current_mode : 1 - _current_mode;
-    GPIO_OUTPUT_SET((_sel_pin), _mode);
+    gpio_write((_sel_pin), _mode);
     
-    _last_cf1_interrupt = _first_cf1_interrupt = xTaskGetTickCountFromISR();
+    _last_cf1_interrupt = _first_cf1_interrupt = sdk_system_get_time();
    
 }
 
@@ -285,7 +298,7 @@ void IRAM HLW8012_setResistors(float current, float voltage_upstream, float volt
 }
 
 void  HLW8012_cf_interrupt(void) {
-    uint32_t now = xTaskGetTickCountFromISR();
+    uint32_t now = sdk_system_get_time();
     _power_pulse_width = now - _last_cf_interrupt;
     _last_cf_interrupt = now;
     _pulse_count++;
@@ -293,7 +306,7 @@ void  HLW8012_cf_interrupt(void) {
 
 void  HLW8012_cf1_interrupt(void) {
 
-    const uint32_t now = xTaskGetTickCountFromISR();
+    const uint32_t now = sdk_system_get_time();
 
     if ((now - _first_cf1_interrupt) > _pulse_timeout) {
 
@@ -313,14 +326,14 @@ void  HLW8012_cf1_interrupt(void) {
 
         _mode = 1 - _mode;
         
-        GPIO_OUTPUT_SET((_sel_pin), _mode);
+        gpio_write((_sel_pin), _mode);
         _first_cf1_interrupt = now;
     }
 
     _last_cf1_interrupt = now;
 }
 
-void HLW8012_intr_handler(void *arg){
+/*void HLW8012_intr_handler(void *arg){
     uint32 gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
 
     if (gpio_status & BIT(_cf_pin)) {
@@ -340,6 +353,6 @@ void HLW8012_intr_handler(void *arg){
         gpio_pin_intr_state_set(GPIO_ID_PIN(_cf1_pin), GPIO_PIN_INTR_NEGEDGE);
     }
 }
-
+*/
 
 
