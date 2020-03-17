@@ -23,9 +23,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "HLW8012_ESP82.h"
+
+#include <espressif/esp_sta.h>
 #include <espressif/esp_common.h>
+#include <esp8266.h>
 #include <FreeRTOS.h>
-#include <c_types.h>
+#include <task.h>
+
 #include <math.h>
 
 uint8_t _cf_pin;
@@ -64,15 +68,16 @@ void HLW8012_intr_handler(void *arg);
 
 void IRAM HLW8012_checkCFSignal() {
 /*IRAM*/
-    if ((system_get_time() - _last_cf_interrupt) > _pulse_timeout)
+    const uint32_t now = xTaskGetTickCountFromISR();
+    if ((now - _last_cf_interrupt) > _pulse_timeout)
         _power_pulse_width = 0;
 }
 
 
 void IRAM HLW8012_checkCF1Signal() {
     /*IRAM*/
-
-    if ((system_get_time() - _last_cf1_interrupt) > _pulse_timeout) {
+    const uint32_t now = xTaskGetTickCountFromISR();
+    if ((now - _last_cf1_interrupt) > _pulse_timeout) {
         if (_mode == _current_mode) {
             _current_pulse_width = 0;
         } else {
@@ -175,7 +180,7 @@ void IRAM HLW8012_setMode(hlw8012_mode_t mode) {
     _mode = (mode == MODE_CURRENT) ? _current_mode : 1 - _current_mode;
     GPIO_OUTPUT_SET((_sel_pin), _mode);
     
-    _last_cf1_interrupt = _first_cf1_interrupt = system_get_time();
+    _last_cf1_interrupt = _first_cf1_interrupt = xTaskGetTickCountFromISR();
    
 }
 
@@ -280,7 +285,7 @@ void IRAM HLW8012_setResistors(float current, float voltage_upstream, float volt
 }
 
 void  HLW8012_cf_interrupt(void) {
-    uint32_t now = system_get_time();
+    uint32_t now = xTaskGetTickCountFromISR();
     _power_pulse_width = now - _last_cf_interrupt;
     _last_cf_interrupt = now;
     _pulse_count++;
@@ -288,7 +293,7 @@ void  HLW8012_cf_interrupt(void) {
 
 void  HLW8012_cf1_interrupt(void) {
 
-    uint32_t now = system_get_time();
+    const uint32_t now = xTaskGetTickCountFromISR();
 
     if ((now - _first_cf1_interrupt) > _pulse_timeout) {
 
