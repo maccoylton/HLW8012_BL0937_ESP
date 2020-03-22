@@ -69,7 +69,7 @@ void  HLW8012_cf_interrupt(void);
 void  HLW8012_cf1_interrupt(void);
 
 
-void IRAM HLW8012_checkCFSignal() {
+void HLW8012_checkCFSignal() {
 /*IRAM*/
     const uint32_t now = sdk_system_get_time();
     if ((now - _last_cf_interrupt) > _pulse_timeout)
@@ -77,7 +77,7 @@ void IRAM HLW8012_checkCFSignal() {
 }
 
 
-void IRAM HLW8012_checkCF1Signal() {
+void HLW8012_checkCF1Signal() {
     /*IRAM*/
     const uint32_t now = sdk_system_get_time();
     if ((now - _last_cf1_interrupt) > _pulse_timeout) {
@@ -95,7 +95,7 @@ void IRAM HLW8012_checkCF1Signal() {
 // For power a frequency of 1Hz means around 12W
 // For current a frequency of 1Hz means around 15mA
 // For voltage a frequency of 1Hz means around 0.5V
-void IRAM _calculateDefaultMultipliers() {
+void _calculateDefaultMultipliers() {
     /*IRAM*/
 
     switch (_model){
@@ -112,15 +112,17 @@ void IRAM _calculateDefaultMultipliers() {
     }
 }
 
-float IRAM HLW8012_getCurrentMultiplier() { return _current_multiplier; };
-float IRAM HLW8012_getVoltageMultiplier() { return _voltage_multiplier; };
-float IRAM HLW8012_getPowerMultiplier() { return _power_multiplier; };
+float HLW8012_getCurrentMultiplier() { return _current_multiplier; };
+float HLW8012_getVoltageMultiplier() { return _voltage_multiplier; };
+float HLW8012_getPowerMultiplier() { return _power_multiplier; };
 
-void IRAM HLW8012_setCurrentMultiplier(float current_multiplier) { _current_multiplier = current_multiplier; };
-void IRAM HLW8012_setVoltageMultiplier(float voltage_multiplier) { _voltage_multiplier = voltage_multiplier; };
-void IRAM HLW8012_setPowerMultiplier(float power_multiplier) { _power_multiplier = power_multiplier; };
+void HLW8012_setCurrentMultiplier(float current_multiplier) { _current_multiplier = current_multiplier; };
+void HLW8012_setVoltageMultiplier(float voltage_multiplier) { _voltage_multiplier = voltage_multiplier; };
+void HLW8012_setPowerMultiplier(float power_multiplier) { _power_multiplier = power_multiplier; };
 
-void IRAM HLW8012_init(uint8_t cf_pin, uint8_t cf1_pin, uint8_t sel_pin, uint8_t currentWhen, uint8_t model){
+void HLW8012_init(uint8_t cf_pin, uint8_t cf1_pin, uint8_t sel_pin, uint8_t currentWhen, uint8_t model){
+
+    printf ("%s:\n", __func__);
     _model = model;
 
     switch (_model) {
@@ -189,7 +191,9 @@ void IRAM HLW8012_init(uint8_t cf_pin, uint8_t cf1_pin, uint8_t sel_pin, uint8_t
 /*    ETS_GPIO_INTR_ENABLE();*/
 }
 
-void IRAM HLW8012_setMode(hlw8012_mode_t mode) {
+void HLW8012_setMode(hlw8012_mode_t mode) {
+
+    printf ("%s:\n", __func__);
     _mode = (mode == MODE_CURRENT) ? _current_mode : 1 - _current_mode;
     gpio_write((_sel_pin), _mode);
     
@@ -197,21 +201,26 @@ void IRAM HLW8012_setMode(hlw8012_mode_t mode) {
    
 }
 
-hlw8012_mode_t IRAM HLW8012_getMode() {
+hlw8012_mode_t HLW8012_getMode() {
+
+    printf ("%s:\n", __func__);
     return (_mode == _current_mode) ? MODE_CURRENT : MODE_VOLTAGE;
 }
 
-hlw8012_mode_t IRAM HLW8012_toggleMode() {
+hlw8012_mode_t HLW8012_toggleMode() {
+
+    printf ("%s:\n", __func__);
     hlw8012_mode_t new_mode = HLW8012_getMode() == MODE_CURRENT ? MODE_VOLTAGE : MODE_CURRENT;
     HLW8012_setMode(new_mode);
     return new_mode;
 }
 
-uint16_t IRAM HLW8012_getCurrent() {
+uint16_t HLW8012_getCurrent() {
 
     // Power measurements are more sensitive to switch offs,
     // so we first check if power is 0 to set _current to 0 too
 
+    printf ("%s:\n", __func__);
     HLW8012_getActivePower();
 
     if (_power == 0) {
@@ -221,18 +230,24 @@ uint16_t IRAM HLW8012_getCurrent() {
          HLW8012_checkCF1Signal();
     }
     _current = (_current_pulse_width > 0) ? _current_multiplier / _current_pulse_width  : 0;
+
+    printf ("%s: current: %f\n", __func__, _current);
+
     return (uint16_t)(_current * 100);
 
 }
 
-uint16_t IRAM HLW8012_getVoltage() {
+uint16_t HLW8012_getVoltage() {
+
+    printf ("%s:\n", __func__);
     HLW8012_checkCF1Signal();
     
     _voltage = (_voltage_pulse_width > 0) ? _voltage_multiplier / _voltage_pulse_width : 0;
+    printf ("%s: voltage: %d\n", __func__, _voltage);
     return _voltage;
 }
 
-uint32_t IRAM HLW8012_getEnergy() {
+uint32_t HLW8012_getEnergy() {
 
     /*
     Pulse count is directly proportional to energy:
@@ -240,25 +255,32 @@ uint32_t IRAM HLW8012_getEnergy() {
     f = N/t (N=pulse count, t = time)
     E = P*t = m*N  (E=energy)
     */
+    printf ("%s:\n", __func__);
     return _pulse_count * _power_multiplier / 1000000l;
 }
 
-uint16_t IRAM HLW8012_getActivePower() {
+uint16_t HLW8012_getActivePower() {
 
+    printf ("%s:\n", __func__);
     HLW8012_checkCFSignal();
 
     _power = (_power_pulse_width > 0) ? _power_multiplier / _power_pulse_width : 0;
+    printf ("%s: power: %d\n", __func__, _power);
     return _power;
 }
 
-uint16_t IRAM HLW8012_getApparentPower() {
+uint16_t HLW8012_getApparentPower() {
+
+    printf ("%s:\n", __func__);
     float current = HLW8012_getCurrent();
     uint16_t voltage = HLW8012_getVoltage();
     return voltage * current;
 }
 
 
-float IRAM HLW8012_getPowerFactor() {
+float HLW8012_getPowerFactor() {
+
+    printf ("%s:\n", __func__);
     uint16_t active = HLW8012_getActivePower();
     uint16_t apparent = HLW8012_getApparentPower();
     if (active > apparent) return 1;
@@ -266,30 +288,40 @@ float IRAM HLW8012_getPowerFactor() {
     return (float) active / apparent;
 }
 
-void IRAM HLW8012_resetEnergy() {
+void HLW8012_resetEnergy() {
+
+    printf ("%s:\n", __func__);
     _pulse_count = 0;
 }
 
-void IRAM HLW8012_expectedCurrent(float value) {
+void HLW8012_expectedCurrent(float value) {
+
+    printf ("%s:\n", __func__);
     if (_current == 0) HLW8012_getCurrent();
     if (_current > 0) _current_multiplier *= (value / _current);
 }
 
-void IRAM HLW8012_expectedVoltage(uint16_t value) {
+void HLW8012_expectedVoltage(uint16_t value) {
+
+    printf ("%s:\n", __func__);
     if (_voltage == 0) HLW8012_getVoltage();
     if (_voltage > 0) _voltage_multiplier *= ((float) value / _voltage);
 }
 
-void IRAM HLW8012_expectedActivePower(uint16_t value) {
+void HLW8012_expectedActivePower(uint16_t value) {
+
+    printf ("%s:\n", __func__);
     if (_power == 0) HLW8012_getActivePower();
     if (_power > 0) _power_multiplier *= ((float) value / _power);
 }
 
-void IRAM HLW8012_resetMultipliers() {
+void HLW8012_resetMultipliers() {
+
+    printf ("%s:\n", __func__);
     _calculateDefaultMultipliers();
 }
 
-void IRAM HLW8012_setResistors(float current, float voltage_upstream, float voltage_downstream) {
+void HLW8012_setResistors(float current, float voltage_upstream, float voltage_downstream) {
     if (voltage_downstream > 0) {
         _current_resistor = current;
         _voltage_resistor = (voltage_upstream + voltage_downstream) / voltage_downstream;
@@ -302,12 +334,13 @@ void  HLW8012_cf_interrupt(void) {
     _power_pulse_width = now - _last_cf_interrupt;
     _last_cf_interrupt = now;
     _pulse_count++;
+
 }
 
 void  HLW8012_cf1_interrupt(void) {
 
     const uint32_t now = sdk_system_get_time();
-
+    
     if ((now - _first_cf1_interrupt) > _pulse_timeout) {
 
         uint32_t pulse_width;
@@ -330,7 +363,11 @@ void  HLW8012_cf1_interrupt(void) {
         _first_cf1_interrupt = now;
     }
 
+    printf ("%s: now: %d, _last_cf1_interrupt: %d, _voltage_pulse_width: %d, _current_pulse_width: %d, _power_pulse_width: %d, mode:%d, _pulse_count; %d, _power_multiplier: %f \n", __func__, now, _last_cf1_interrupt, _voltage_pulse_width, _current_pulse_width, _power_pulse_width, _mode, _pulse_count, _power_multiplier);
+    
     _last_cf1_interrupt = now;
+
+    
 }
 
 /*void HLW8012_intr_handler(void *arg){
