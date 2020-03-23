@@ -69,7 +69,7 @@ void  HLW8012_cf_interrupt(void);
 void  HLW8012_cf1_interrupt(void);
 
 
-void HLW8012_checkCFSignal() {
+static void HLW8012_checkCFSignal() {
 /*IRAM*/
     const uint32_t now = sdk_system_get_time();
     if ((now - _last_cf_interrupt) > _pulse_timeout)
@@ -77,7 +77,7 @@ void HLW8012_checkCFSignal() {
 }
 
 
-void HLW8012_checkCF1Signal() {
+static void HLW8012_checkCF1Signal() {
     /*IRAM*/
     const uint32_t now = sdk_system_get_time();
     if ((now - _last_cf1_interrupt) > _pulse_timeout) {
@@ -231,7 +231,7 @@ uint16_t HLW8012_getCurrent() {
     }
     _current = (_current_pulse_width > 0) ? _current_multiplier / _current_pulse_width  : 0;
 
-    printf ("%s: current: %f\n", __func__, _current);
+    printf ("%s: current: %f, _current_pulse_width: %d, _current_multiplier: %f\n", __func__, _current, _current_pulse_width, _current_multiplier);
 
     return (uint16_t)(_current * 100);
 
@@ -243,7 +243,7 @@ uint16_t HLW8012_getVoltage() {
     HLW8012_checkCF1Signal();
     
     _voltage = (_voltage_pulse_width > 0) ? _voltage_multiplier / _voltage_pulse_width : 0;
-    printf ("%s: voltage: %d\n", __func__, _voltage);
+    printf ("%s: voltage: %d, _voltage_pulse_width: %d, _voltage_multiplier: %f\n", __func__, _voltage, _voltage_pulse_width, _voltage_multiplier);
     return _voltage;
 }
 
@@ -265,7 +265,7 @@ uint16_t HLW8012_getActivePower() {
     HLW8012_checkCFSignal();
 
     _power = (_power_pulse_width > 0) ? _power_multiplier / _power_pulse_width : 0;
-    printf ("%s: power: %d\n", __func__, _power);
+    printf ("%s: power: %d, _power_pulse_width: %d, _power_multiplier: %f\n", __func__, _power, _power_pulse_width, _power_multiplier);
     return _power;
 }
 
@@ -362,8 +362,6 @@ void  HLW8012_cf1_interrupt(void) {
         gpio_write((_sel_pin), _mode);
         _first_cf1_interrupt = now;
     }
-
-    printf ("%s: now: %d, _last_cf1_interrupt: %d, _voltage_pulse_width: %d, _current_pulse_width: %d, _power_pulse_width: %d, mode:%d, _pulse_count; %d, _power_multiplier: %f \n", __func__, now, _last_cf1_interrupt, _voltage_pulse_width, _current_pulse_width, _power_pulse_width, _mode, _pulse_count, _power_multiplier);
     
     _last_cf1_interrupt = now;
 
