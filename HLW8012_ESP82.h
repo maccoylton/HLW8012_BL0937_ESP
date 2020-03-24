@@ -3,7 +3,9 @@
 HLW8012_ESP82
 also works with BL0937
 
-Copyright (C) 2019 by Jaromir Kopp <macwyznawca at me dot com>
+ Copyright (C) 2020 by David B brown
+
+base don library by Jaromir Kopp <macwyznawca at me dot com>
 
 Based on the library for Arduino created by: Xose Pérez <xose dot perez at gmail dot com>
 
@@ -55,7 +57,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // Lower values increase sampling rate but reduce precission
 // Values below 0.5s are not recommended since current and voltage output
 // will have no time to stabilise
-#define PULSE_TIMEOUT       (2000000l)
+#define PULSE_TIMEOUT       (2000000)
 
 
 // CF1 mode
@@ -73,7 +75,7 @@ void HLW8012_setMode(hlw8012_mode_t mode);
 hlw8012_mode_t HLW8012_getMode();
 hlw8012_mode_t HLW8012_toggleMode();
 
-uint16_t HLW8012_getCurrent(); // A x100 (dyvide by 100 for Amper)
+float HLW8012_getCurrent(); // 
 uint16_t HLW8012_getVoltage(); 
 uint16_t HLW8012_getActivePower(); // moc czynna
 uint16_t HLW8012_getApparentPower(); // moc pozorna
@@ -95,5 +97,5 @@ void HLW8012_setCurrentMultiplier(float current_multiplier);
 void HLW8012_setVoltageMultiplier(float voltage_multiplier);
 void HLW8012_setPowerMultiplier(float power_multiplier);
 void HLW8012_resetMultipliers();
-
+void HLW8012_set_calibrated_mutipliers (float *calibrated_current_multiplier, float *calibrated_voltage_multiplier, float *calibrated_power_multiplier, int load_voltage, int load_power) ;
 #endif

@@ -65,13 +65,14 @@ volatile uint32_t _first_cf1_interrupt = 0;
 
 
 void HLW8012_intr_handler(void *arg);
-void  HLW8012_cf_interrupt(void);
-void  HLW8012_cf1_interrupt(void);
+void  HLW8012_cf_interrupt_handler(void);
+void  HLW8012_cf1_interrupt_handler(void);
 
 
 static void HLW8012_checkCFSignal() {
 /*IRAM*/
     const uint32_t now = sdk_system_get_time();
+/*    printf ("%s: now: %d, _last_cf_interrupt: %d,  _power_pulse_width: %d, _pulse_count:%d, now - _last_cf_interrupt:%d\n", __func__, now, _last_cf_interrupt, _power_pulse_width, _pulse_count, now - _last_cf_interrupt); */
     if ((now - _last_cf_interrupt) > _pulse_timeout)
         _power_pulse_width = 0;
 }
@@ -80,6 +81,7 @@ static void HLW8012_checkCFSignal() {
 static void HLW8012_checkCF1Signal() {
     /*IRAM*/
     const uint32_t now = sdk_system_get_time();
+/*    printf ("%s: now: %d, _last_cf1_interrupt: %d, _first_cf1_interrupt: %d,  _current_pulse_width: %d, _voltage_pulse_width: %d, now - _last_cf1_interrupt:%d\n", __func__, now, _last_cf1_interrupt, _first_cf1_interrupt, _current_pulse_width, _voltage_pulse_width, now - _last_cf1_interrupt);*/
     if ((now - _last_cf1_interrupt) > _pulse_timeout) {
         if (_mode == _current_mode) {
             _current_pulse_width = 0;
@@ -121,79 +123,85 @@ void HLW8012_setVoltageMultiplier(float voltage_multiplier) { _voltage_multiplie
 void HLW8012_setPowerMultiplier(float power_multiplier) { _power_multiplier = power_multiplier; };
 
 void HLW8012_init(uint8_t cf_pin, uint8_t cf1_pin, uint8_t sel_pin, uint8_t currentWhen, uint8_t model){
-
+    
     printf ("%s:\n", __func__);
     _model = model;
-
-    switch (_model) {
-    case 1:
-        _voltage_resistor = R_VOLTAGE_BL0;
-        _vref = V_REF_BL0;
-        break;
     
-    default:
-        _voltage_resistor = R_VOLTAGE_HLW;
-        _vref = V_REF_HLW;
-        break;
+    switch (_model) {
+        case 1:
+            _voltage_resistor = R_VOLTAGE_BL0;
+            _vref = V_REF_BL0;
+            break;
+            
+        default:
+            _voltage_resistor = R_VOLTAGE_HLW;
+            _vref = V_REF_HLW;
+            break;
     }
-
+    
     _cf_pin = cf_pin;
     _cf1_pin = cf1_pin;
     _sel_pin = sel_pin;
     _current_mode = currentWhen;
-
-/*    ETS_GPIO_INTR_ATTACH(HLW8012_intr_handler, NULL);
-
-    ETS_GPIO_INTR_DISABLE();
-
-    PIN_FUNC_SELECT(get_pin_mux(_sel_pin), get_pin_func(_sel_pin));
-    PIN_FUNC_SELECT(get_pin_mux(_cf_pin), get_pin_func(_cf_pin));
-    PIN_FUNC_SELECT(get_pin_mux(_cf1_pin), get_pin_func(_cf1_pin));
-
-    GPIO_DIS_OUTPUT(_cf_pin);
-    PIN_PULLUP_EN(get_pin_mux(_cf_pin));
-    GPIO_DIS_OUTPUT(_cf1_pin);
-    PIN_PULLUP_EN(get_pin_mux(_cf1_pin));
-
-    //gpio_output_set(0, 0, (BIT0 << _sel_pin), 0);
-
-    gpio_register_set(GPIO_PIN_ADDR(_cf_pin),
-                        GPIO_PIN_INT_TYPE_SET(GPIO_PIN_INTR_DISABLE)
-                      | GPIO_PIN_PAD_DRIVER_SET(GPIO_PAD_DRIVER_DISABLE)
-                      | GPIO_PIN_SOURCE_SET(GPIO_AS_PIN_SOURCE));
-
-    gpio_register_set(GPIO_PIN_ADDR(_cf1_pin),
-                        GPIO_PIN_INT_TYPE_SET(GPIO_PIN_INTR_DISABLE)
-                      | GPIO_PIN_PAD_DRIVER_SET(GPIO_PAD_DRIVER_DISABLE)
-                      | GPIO_PIN_SOURCE_SET(GPIO_AS_PIN_SOURCE));
-
-    GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, BIT(_cf_pin));
-    GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, BIT(_cf1_pin));
     
-    gpio_pin_intr_state_set(GPIO_ID_PIN(_cf_pin),GPIO_INTTYPE_EDGE_NEG);
-    gpio_pin_intr_state_set(GPIO_ID_PIN(_cf1_pin),GPIO_INTTYPE_EDGE_NEG);
-*/
+    /*    ETS_GPIO_INTR_ATTACH(HLW8012_intr_handler, NULL);
+     
+     ETS_GPIO_INTR_DISABLE();
+     
+     PIN_FUNC_SELECT(get_pin_mux(_sel_pin), get_pin_func(_sel_pin));
+     PIN_FUNC_SELECT(get_pin_mux(_cf_pin), get_pin_func(_cf_pin));
+     PIN_FUNC_SELECT(get_pin_mux(_cf1_pin), get_pin_func(_cf1_pin));
+     
+     GPIO_DIS_OUTPUT(_cf_pin);
+     PIN_PULLUP_EN(get_pin_mux(_cf_pin));
+     GPIO_DIS_OUTPUT(_cf1_pin);
+     PIN_PULLUP_EN(get_pin_mux(_cf1_pin));
+     
+     //gpio_output_set(0, 0, (BIT0 << _sel_pin), 0);
+     
+     gpio_register_set(GPIO_PIN_ADDR(_cf_pin),
+     GPIO_PIN_INT_TYPE_SET(GPIO_PIN_INTR_DISABLE)
+     | GPIO_PIN_PAD_DRIVER_SET(GPIO_PAD_DRIVER_DISABLE)
+     | GPIO_PIN_SOURCE_SET(GPIO_AS_PIN_SOURCE));
+     
+     gpio_register_set(GPIO_PIN_ADDR(_cf1_pin),
+     GPIO_PIN_INT_TYPE_SET(GPIO_PIN_INTR_DISABLE)
+     | GPIO_PIN_PAD_DRIVER_SET(GPIO_PAD_DRIVER_DISABLE)
+     | GPIO_PIN_SOURCE_SET(GPIO_AS_PIN_SOURCE));
+     
+     GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, BIT(_cf_pin));
+     GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, BIT(_cf1_pin));
+     
+     gpio_pin_intr_state_set(GPIO_ID_PIN(_cf_pin),GPIO_INTTYPE_EDGE_NEG);
+     gpio_pin_intr_state_set(GPIO_ID_PIN(_cf1_pin),GPIO_INTTYPE_EDGE_NEG);
+     */
     
     
     
     gpio_enable(_cf_pin, GPIO_INPUT);
+    gpio_set_pullup(_cf_pin, true, false);
+    
     gpio_enable(_cf1_pin, GPIO_INPUT);
-    gpio_set_interrupt(_cf_pin, GPIO_INTTYPE_EDGE_NEG, HLW8012_cf_interrupt);
-    gpio_set_interrupt(_cf1_pin, GPIO_INTTYPE_EDGE_NEG, HLW8012_cf1_interrupt);
+    gpio_set_pullup(_cf1_pin, true, false);
+    printf ("%s: set pullups to true\n", __func__);
+
     gpio_enable(_sel_pin, GPIO_OUTPUT);
-
-
+    
     _calculateDefaultMultipliers();
-
+    
     _mode = _current_mode;
     gpio_write(_sel_pin, _mode);
-
-/*    ETS_GPIO_INTR_ENABLE();*/
+    
+    gpio_set_interrupt( _cf_pin, GPIO_INTTYPE_EDGE_ANY, (gpio_interrupt_handler_t)HLW8012_cf_interrupt_handler);
+    gpio_set_interrupt( _cf1_pin, GPIO_INTTYPE_EDGE_ANY, (gpio_interrupt_handler_t)HLW8012_cf1_interrupt_handler);
+    
+    /*    ETS_GPIO_INTR_ENABLE();*/
+    
 }
 
-void HLW8012_setMode(hlw8012_mode_t mode) {
+void IRAM HLW8012_setMode(hlw8012_mode_t mode) {
 
-    printf ("%s:\n", __func__);
+/*    printf ("%s:\n", __func__);*/
     _mode = (mode == MODE_CURRENT) ? _current_mode : 1 - _current_mode;
     gpio_write((_sel_pin), _mode);
     
@@ -201,49 +209,49 @@ void HLW8012_setMode(hlw8012_mode_t mode) {
    
 }
 
-hlw8012_mode_t HLW8012_getMode() {
+hlw8012_mode_t IRAM HLW8012_getMode() {
 
-    printf ("%s:\n", __func__);
+/*    printf ("%s:\n", __func__);*/
     return (_mode == _current_mode) ? MODE_CURRENT : MODE_VOLTAGE;
 }
 
-hlw8012_mode_t HLW8012_toggleMode() {
+hlw8012_mode_t IRAM HLW8012_toggleMode() {
 
-    printf ("%s:\n", __func__);
+/*    printf ("%s:\n", __func__);*/
     hlw8012_mode_t new_mode = HLW8012_getMode() == MODE_CURRENT ? MODE_VOLTAGE : MODE_CURRENT;
     HLW8012_setMode(new_mode);
     return new_mode;
 }
 
-uint16_t HLW8012_getCurrent() {
+float HLW8012_getCurrent() {
 
     // Power measurements are more sensitive to switch offs,
     // so we first check if power is 0 to set _current to 0 too
 
-    printf ("%s:\n", __func__);
+/*    printf ("%s:\n", __func__);*/
     HLW8012_getActivePower();
 
     if (_power == 0) {
-         _current_pulse_width = 0;
+/*         _current_pulse_width = 0;*/
 
     } else {
          HLW8012_checkCF1Signal();
     }
-    _current = (_current_pulse_width > 0) ? _current_multiplier / _current_pulse_width  : 0;
+    _current = (_current_pulse_width > 0) ? _current_multiplier / _current_pulse_width / 2 : 0;
 
-    printf ("%s: current: %f, _current_pulse_width: %d, _current_multiplier: %f\n", __func__, _current, _current_pulse_width, _current_multiplier);
+    /*printf ("%s: current: %f, _current_pulse_width: %d, _current_multiplier: %f\n", __func__, _current, _current_pulse_width, _current_multiplier);*/
 
-    return (uint16_t)(_current * 100);
+    return _current;
 
 }
 
 uint16_t HLW8012_getVoltage() {
 
-    printf ("%s:\n", __func__);
+/*    printf ("%s:\n", __func__);*/
     HLW8012_checkCF1Signal();
     
-    _voltage = (_voltage_pulse_width > 0) ? _voltage_multiplier / _voltage_pulse_width : 0;
-    printf ("%s: voltage: %d, _voltage_pulse_width: %d, _voltage_multiplier: %f\n", __func__, _voltage, _voltage_pulse_width, _voltage_multiplier);
+    _voltage = (_voltage_pulse_width > 0) ? _voltage_multiplier / _voltage_pulse_width / 2 : 0;
+/*    printf ("%s: voltage: %d, _voltage_pulse_width: %d, _voltage_multiplier: %f\n", __func__, _voltage, _voltage_pulse_width, _voltage_multiplier);*/
     return _voltage;
 }
 
@@ -255,23 +263,23 @@ uint32_t HLW8012_getEnergy() {
     f = N/t (N=pulse count, t = time)
     E = P*t = m*N  (E=energy)
     */
-    printf ("%s:\n", __func__);
-    return _pulse_count * _power_multiplier / 1000000l;
+/*    printf ("%s:\n", __func__);*/
+    return _pulse_count * _power_multiplier / 1000000. / 2;
 }
 
 uint16_t HLW8012_getActivePower() {
 
-    printf ("%s:\n", __func__);
+/*    printf ("%s:\n", __func__);*/
     HLW8012_checkCFSignal();
 
-    _power = (_power_pulse_width > 0) ? _power_multiplier / _power_pulse_width : 0;
-    printf ("%s: power: %d, _power_pulse_width: %d, _power_multiplier: %f\n", __func__, _power, _power_pulse_width, _power_multiplier);
+    _power = (_power_pulse_width > 0) ? _power_multiplier / _power_pulse_width / 2 : 0;
+/*    printf ("%s: power: %d, _power_pulse_width: %d, _power_multiplier: %f\n", __func__, _power, _power_pulse_width, _power_multiplier);*/
     return _power;
 }
 
 uint16_t HLW8012_getApparentPower() {
 
-    printf ("%s:\n", __func__);
+/*    printf ("%s:\n", __func__);*/
     float current = HLW8012_getCurrent();
     uint16_t voltage = HLW8012_getVoltage();
     return voltage * current;
@@ -280,7 +288,7 @@ uint16_t HLW8012_getApparentPower() {
 
 float HLW8012_getPowerFactor() {
 
-    printf ("%s:\n", __func__);
+/*    printf ("%s:\n", __func__);*/
     uint16_t active = HLW8012_getActivePower();
     uint16_t apparent = HLW8012_getApparentPower();
     if (active > apparent) return 1;
@@ -290,34 +298,38 @@ float HLW8012_getPowerFactor() {
 
 void HLW8012_resetEnergy() {
 
-    printf ("%s:\n", __func__);
+ /*   printf ("%s:\n", __func__);*/
     _pulse_count = 0;
 }
 
 void HLW8012_expectedCurrent(float value) {
 
-    printf ("%s:\n", __func__);
+    printf ("%s: calibration current: %f\n", __func__, value);
     if (_current == 0) HLW8012_getCurrent();
-    if (_current > 0) _current_multiplier *= (value / _current);
+    if (_current > 0) {
+        _current_multiplier *= (value / _current);
+    } else {
+        printf ("%s: issue calibrating - current 0\n", __func__);
+    }
 }
 
 void HLW8012_expectedVoltage(uint16_t value) {
 
-    printf ("%s:\n", __func__);
+/*    printf ("%s:\n", __func__);*/
     if (_voltage == 0) HLW8012_getVoltage();
     if (_voltage > 0) _voltage_multiplier *= ((float) value / _voltage);
 }
 
 void HLW8012_expectedActivePower(uint16_t value) {
 
-    printf ("%s:\n", __func__);
+/*    printf ("%s:\n", __func__);*/
     if (_power == 0) HLW8012_getActivePower();
     if (_power > 0) _power_multiplier *= ((float) value / _power);
 }
 
 void HLW8012_resetMultipliers() {
 
-    printf ("%s:\n", __func__);
+/*    printf ("%s:\n", __func__);*/
     _calculateDefaultMultipliers();
 }
 
@@ -329,28 +341,28 @@ void HLW8012_setResistors(float current, float voltage_upstream, float voltage_d
     }
 }
 
-void  HLW8012_cf_interrupt(void) {
+void  IRAM HLW8012_cf_interrupt_handler(void) {
     uint32_t now = sdk_system_get_time();
     _power_pulse_width = now - _last_cf_interrupt;
     _last_cf_interrupt = now;
     _pulse_count++;
+    printf ("%s: _power_pulse_width: %d, now:%d, pulse_count:%d\n", __func__, _power_pulse_width, now, _pulse_count);
 
 }
 
-void  HLW8012_cf1_interrupt(void) {
+void IRAM HLW8012_cf1_interrupt_handler(void) {
 
     const uint32_t now = sdk_system_get_time();
     
     if ((now - _first_cf1_interrupt) > _pulse_timeout) {
 
         uint32_t pulse_width;
-        
         if (_last_cf1_interrupt == _first_cf1_interrupt) {
             pulse_width = 0;
         } else {
             pulse_width = now - _last_cf1_interrupt;
         }
-
+        /*printf ("%s: mode: %d, current mode:%d, pulse width:%d\n", __func__, _mode, _current_mode, pulse_width);*/
         if (_mode == _current_mode) {
             _current_pulse_width = pulse_width;
         } else {
@@ -359,12 +371,46 @@ void  HLW8012_cf1_interrupt(void) {
 
         _mode = 1 - _mode;
         
-        gpio_write((_sel_pin), _mode);
+        gpio_write(_sel_pin, _mode);
         _first_cf1_interrupt = now;
     }
     
     _last_cf1_interrupt = now;
 
+}
+
+
+void HLW8012_set_calibrated_mutipliers (float *calibrated_current_multiplier, float *calibrated_voltage_multiplier, float *calibrated_power_multiplier, int load_voltage, int load_power) {
+    
+    float load_current;
+    
+    load_current = 1.0f * load_power/load_voltage;
+    
+    printf ("%s: [HLW] current multiplier : %f\n", __func__, _current_multiplier);
+    printf ("%s: [HLW] voltage multiplier : %f\n", __func__, _voltage_multiplier);
+    printf ("%s: [HLW] power multiplier   : %f\n", __func__, _power_multiplier);
+    printf ("%s: [HLW] load voltage       : %d\n", __func__, load_voltage);
+    printf ("%s: [HLW] load power         : %d\n", __func__, load_power);
+    printf ("%s: [HLW] load curret        : %f\n\n", __func__, load_current);
+    
+    
+    HLW8012_expectedActivePower(load_power);
+    HLW8012_expectedVoltage(load_voltage);
+    HLW8012_expectedCurrent(load_current);
+    
+    *calibrated_current_multiplier = HLW8012_getCurrentMultiplier();
+    *calibrated_voltage_multiplier = HLW8012_getVoltageMultiplier();
+    *calibrated_power_multiplier = HLW8012_getPowerMultiplier();
+    // Show corrected factors
+
+    printf ("%s: [HLW] calibrated current multiplier : %f\n", __func__, *calibrated_current_multiplier);
+    printf ("%s: [HLW] calibrated voltage multiplier : %f\n", __func__, *calibrated_voltage_multiplier);
+    printf ("%s: [HLW] calibrated power multiplier   : %f\n", __func__, *calibrated_power_multiplier);
+
+    
+    HLW8012_setCurrentMultiplier ( *calibrated_current_multiplier );
+    HLW8012_setVoltageMultiplier ( *calibrated_voltage_multiplier );
+    HLW8012_setPowerMultiplier ( *calibrated_power_multiplier);
     
 }
 
