@@ -5,7 +5,7 @@ also works with BL0937
 
  Copyright (C) 2020 by David B brown
 
-base don library by Jaromir Kopp <macwyznawca at me dot com>
+based on library by Jaromir Kopp <macwyznawca at me dot com>
 
 Based on the library for Arduino created by: Xose Pérez <xose dot perez at gmail dot com>
 
