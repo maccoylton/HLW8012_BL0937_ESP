@@ -345,7 +345,7 @@ void  IRAM HLW8012_cf_interrupt_handler(void) {
     _power_pulse_width = now - _last_cf_interrupt;
     _last_cf_interrupt = now;
     _pulse_count++;
-    printf ("%s: _power_pulse_width: %d, now:%d, pulse_count:%d\n", __func__, _power_pulse_width, now, _pulse_count);
+    // printf ("%s: _power_pulse_width: %d, now:%d, pulse_count:%d\n", __func__, _power_pulse_width, now, _pulse_count);
 
 }
 
