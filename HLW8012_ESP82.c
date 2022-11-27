@@ -191,8 +191,8 @@ void HLW8012_init(uint8_t cf_pin, uint8_t cf1_pin, uint8_t sel_pin, uint8_t curr
     _mode = _current_mode;
     gpio_write(_sel_pin, _mode);
     
-    gpio_set_interrupt( _cf_pin, GPIO_INTTYPE_EDGE_ANY, (gpio_interrupt_handler_t)HLW8012_cf_interrupt_handler);
-    gpio_set_interrupt( _cf1_pin, GPIO_INTTYPE_EDGE_ANY, (gpio_interrupt_handler_t)HLW8012_cf1_interrupt_handler);
+    gpio_set_interrupt( _cf_pin, GPIO_INTTYPE_EDGE_POS, (gpio_interrupt_handler_t)HLW8012_cf_interrupt_handler);
+    gpio_set_interrupt( _cf1_pin, GPIO_INTTYPE_EDGE_POS, (gpio_interrupt_handler_t)HLW8012_cf1_interrupt_handler);
     
     /*    ETS_GPIO_INTR_ENABLE();*/
     
