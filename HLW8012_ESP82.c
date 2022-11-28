@@ -1,5 +1,4 @@
 /*
-
 HLW8012_ESP82
 also works with BL0937 (requires calibration)
 
@@ -51,9 +50,9 @@ volatile uint32_t _current_pulse_width = 0; //Unit: us
 volatile uint32_t _power_pulse_width = 0;   //Unit: us
 volatile uint32_t _pulse_count = 0;
 
-float _current = 0;
+float    _current = 0;
 uint16_t _voltage = 0;
-uint16_t _power = 0;
+uint16_t _power   = 0;
 
 uint8_t _current_mode = 1;
 uint8_t _model = 0;
@@ -65,8 +64,8 @@ volatile uint32_t _first_cf1_interrupt = 0;
 
 
 void HLW8012_intr_handler(void *arg);
-void  HLW8012_cf_interrupt_handler(void);
-void  HLW8012_cf1_interrupt_handler(void);
+void HLW8012_cf_interrupt_handler(void);
+void HLW8012_cf1_interrupt_handler(void);
 
 
 static void HLW8012_checkCFSignal() {
@@ -183,7 +182,7 @@ void HLW8012_init(uint8_t cf_pin, uint8_t cf1_pin, uint8_t sel_pin, uint8_t curr
     
     gpio_enable(_cf1_pin, GPIO_INPUT);
     gpio_set_pullup(_cf1_pin, true, false);
-    printf ("%s: set pullups to true\n", __func__);
+    printf ("%s: set pull-ups to true\n", __func__);
 
     gpio_enable(_sel_pin, GPIO_OUTPUT);
     
@@ -192,8 +191,8 @@ void HLW8012_init(uint8_t cf_pin, uint8_t cf1_pin, uint8_t sel_pin, uint8_t curr
     _mode = _current_mode;
     gpio_write(_sel_pin, _mode);
     
-    gpio_set_interrupt( _cf_pin, GPIO_INTTYPE_EDGE_ANY, (gpio_interrupt_handler_t)HLW8012_cf_interrupt_handler);
-    gpio_set_interrupt( _cf1_pin, GPIO_INTTYPE_EDGE_ANY, (gpio_interrupt_handler_t)HLW8012_cf1_interrupt_handler);
+    gpio_set_interrupt( _cf_pin, GPIO_INTTYPE_EDGE_POS, (gpio_interrupt_handler_t)HLW8012_cf_interrupt_handler);
+    gpio_set_interrupt( _cf1_pin, GPIO_INTTYPE_EDGE_POS, (gpio_interrupt_handler_t)HLW8012_cf1_interrupt_handler);
     
     /*    ETS_GPIO_INTR_ENABLE();*/
     
@@ -346,7 +345,7 @@ void  IRAM HLW8012_cf_interrupt_handler(void) {
     _power_pulse_width = now - _last_cf_interrupt;
     _last_cf_interrupt = now;
     _pulse_count++;
-    printf ("%s: _power_pulse_width: %d, now:%d, pulse_count:%d\n", __func__, _power_pulse_width, now, _pulse_count);
+    // printf ("%s: _power_pulse_width: %d, now:%d, pulse_count:%d\n", __func__, _power_pulse_width, now, _pulse_count);
 
 }
 
@@ -390,8 +389,8 @@ void HLW8012_set_calibrated_mutipliers (float *calibrated_current_multiplier, fl
     printf ("%s: [HLW] voltage multiplier : %f\n", __func__, _voltage_multiplier);
     printf ("%s: [HLW] power multiplier   : %f\n", __func__, _power_multiplier);
     printf ("%s: [HLW] load voltage       : %d\n", __func__, load_voltage);
-    printf ("%s: [HLW] load power         : %d\n", __func__, load_power);
-    printf ("%s: [HLW] load curret        : %f\n\n", __func__, load_current);
+    printf ("%s: [HLW] load current       : %f\n", __func__, load_current);
+    printf ("%s: [HLW] load power         : %d\n\n", __func__, load_power);
     
     
     HLW8012_expectedActivePower(load_power);
@@ -400,7 +399,7 @@ void HLW8012_set_calibrated_mutipliers (float *calibrated_current_multiplier, fl
     
     *calibrated_current_multiplier = HLW8012_getCurrentMultiplier();
     *calibrated_voltage_multiplier = HLW8012_getVoltageMultiplier();
-    *calibrated_power_multiplier = HLW8012_getPowerMultiplier();
+    *calibrated_power_multiplier   = HLW8012_getPowerMultiplier();
     // Show corrected factors
 
     printf ("%s: [HLW] calibrated current multiplier : %f\n", __func__, *calibrated_current_multiplier);
@@ -410,7 +409,7 @@ void HLW8012_set_calibrated_mutipliers (float *calibrated_current_multiplier, fl
     
     HLW8012_setCurrentMultiplier ( *calibrated_current_multiplier );
     HLW8012_setVoltageMultiplier ( *calibrated_voltage_multiplier );
-    HLW8012_setPowerMultiplier ( *calibrated_power_multiplier);
+    HLW8012_setPowerMultiplier   ( *calibrated_power_multiplier);
     
 }
 
