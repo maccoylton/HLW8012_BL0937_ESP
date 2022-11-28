@@ -5,7 +5,7 @@ also works with BL0937
 
  Copyright (C) 2020 by David B brown
 
-base don library by Jaromir Kopp <macwyznawca at me dot com>
+based on library by Jaromir Kopp <macwyznawca at me dot com>
 
 Based on the library for Arduino created by: Xose Pérez <xose dot perez at gmail dot com>
 
@@ -42,8 +42,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // Sonoff Pow has 5x 470K
 // Smart DGM outlet has 3x 680K
 // as per recomended circuit in datasheet
-#define R_VOLTAGE_HLW           ((5 * 470) + 1) //2821 //2350
-#define R_VOLTAGE_BL0        ((3 * 680) + 1) //1980 +1
+#define R_VOLTAGE_HLW       ((5 * 470) + 1) //2351
+#define R_VOLTAGE_BL0       ((3 * 680) + 1) //2041
 
 // Frequency of the HLW8012 internal clock
 #define F_OSC_HLW           (3579000)
